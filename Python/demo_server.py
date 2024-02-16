@@ -9,7 +9,7 @@ sys.path.append('./model/')
 
 from utils import *
 from joycon_manage import *
-from model.pose_estimation import PoseEstimationNetwork
+from model.pose_estimation import *
 from model.filters import *
 
 import numpy as np
