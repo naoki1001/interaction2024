@@ -1,0 +1,8 @@
+hidapi
+torch
+numpy
+filterpy
+scikit-learn
+matplotlib
+numpy-quaternion
+openvr
