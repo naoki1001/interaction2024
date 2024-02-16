@@ -235,7 +235,14 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
-/[Aa]ssets/unity-chan!
+/[Aa]ssets/unity-chan!/*
+/[Aa]ssets/Oculus/*
+/[Aa]ssets/TextMesh\ Pro/*
+/[Aa]ssets/XR/*
+/[Aa]ssets/unity-chan!.meta
+/[Aa]ssets/Oculus.meta
+/[Aa]ssets/TextMesh\ Pro.meta
+/[Aa]ssets/XR.meta
 
 */Fonts/*
 Fonts.meta
