@@ -70,47 +70,47 @@ class RawDataForPoseEstimation:
         acc = u[:3].reshape(-1, 1)
         gyro = u[3:]
         if z is None:
-            r = R.from_quat(convert_quaternion(self.q))
+            r = R.from_quat(self.q)
             rotation_matrix = r.as_matrix()
             acc_g = convert_axis_to_unity(rotation_matrix @ acc - self.g)
             self.p = self.p + dt * self.v + 0.5 * (dt ** 2) * acc_g
             self.v = self.v + dt * acc_g
-            self.q = convert_quaternion(R.from_euler('xyz',[*self.get_euler(u=u)], degrees=False).as_quat())
+            self.q = R.from_euler('xyz',[*self.get_euler(u=u)], degrees=False).as_quat()
         else:
             rotation_matrix = R.from_quat(convert_quaternion(z[3:])).as_matrix()
             acc_g = convert_axis_to_unity(rotation_matrix @ acc - self.g)
             self.p = z[:3].reshape(-1, 1)
             self.v = self.v + dt * acc_g
-            self.q = z[3:]
-        return self.p.T[0], self.q
+            self.q = convert_quaternion(z[3:])
+        return self.p.T[0], convert_quaternion(self.q)
     
     def get_next_state(self, u, z=None, dt=0.005):
         acc = u[:3].reshape(-1, 1)
         gyro = u[3:]
         self.ekf.predict_update(z=calc_z(u[:3]), u=calc_u(gyro, dt))
         if z is None:
-            rotation_matrix = R.from_quat(convert_quaternion(self.q)).as_matrix()
+            rotation_matrix = R.from_quat(self.q).as_matrix()
             acc_g = convert_axis_to_unity(rotation_matrix @ acc - self.g)
-            print(f'acc_g:{acc_g.reshape(3)}')
-            print(f'(r, p, y):{self.ekf.x.reshape(3)}')
+            # print(f'acc_g:{acc_g.reshape(3)}')
+            # print(f'(r, p, y):{self.ekf.x.reshape(3)}')
             self.p = self.p + dt * self.v + 0.5 * (dt ** 2) * acc_g
             self.v = self.v + dt * acc_g
-            #self.q = convert_quaternion(R.from_euler('xyz',[*self.get_euler(u=u)], degrees=False).as_quat())
-            self.q = convert_quaternion(R.from_euler('xyz',[*self.ekf.x.reshape(3)], degrees=False).as_quat())
+            self.q = R.from_euler('xyz',[*self.get_euler(u=u)], degrees=False).as_quat()
+            # self.q = R.from_euler('xyz',[*self.ekf.x.reshape(3)], degrees=False).as_quat()
         else:
             rotation_matrix = R.from_quat(convert_quaternion(z[3:])).as_matrix()
             acc_g = convert_axis_to_unity(rotation_matrix @ acc - self.g)
             self.p = z[:3].reshape(-1, 1)
             self.v = self.v + dt * acc_g
-            self.q = z[3:]
+            self.q = convert_quaternion(z[3:])
         # return self.p.T[0], self.v.T[0], self.q
-        return self.ekf.x.reshape(3), acc_g.reshape(3), self.q
+        return self.p.reshape(3), self.v.reshape(3), convert_quaternion(self.q)
     
     def get_euler(self, u, dt=0.005):
         acc = u[:3]
         gyro = u[3:]
-        r = R.from_quat(convert_quaternion(self.q))
-        euler = (R.from_euler('xyz',[*(gyro * dt)], degrees=False) * r).as_euler('zxy')
+        r = R.from_quat(self.q)
+        euler = (R.from_euler('xyz',[*(gyro * dt)], degrees=False) * r).as_euler('xyz')
         acc_euler = get_euler_from_acc(acc)
         new_euler = np.array([
             acc_euler[0],
