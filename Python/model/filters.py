@@ -238,19 +238,13 @@ class ExtendedKalmanFilterForPoseEstimation(nn.Module):
     def f(self, x, u):
         """
         Updates the quaternion based on the angular velocity and time interval using PyTorch.
-        x is the current quaternion, u is the control input.
+        x is the current state vector, u is the control input.
         """
-        u_k = torch.tensor([0, *u])
-        # Compute the quaternion derivative
-        q_dot = 0.5 * x#quaternion_multiplication(x, u_k)
+        acc = u[:3]
+        gyro = u[3:]
+        x_predicted = x
 
-        # Update the quaternion
-        x_updated = x + q_dot
-
-        # Normalize the updated quaternion
-        x_normalized = x_updated / torch.norm(x_updated)
-
-        return x_normalized
+        return x_predicted
 
 class UnsentedKalmanFilterForPoseEstimation(nn.Module):
     def __init__(self, dim_x=10, dim_z=3, dim_u=6, dt=0.005):
