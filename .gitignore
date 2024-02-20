@@ -246,3 +246,6 @@ XR.meta
 
 */Fonts/*
 Fonts.meta
+
+*.mid*
+*.mp3*

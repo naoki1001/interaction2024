@@ -6,6 +6,7 @@ public class CreateNotes : MonoBehaviour
 {
     //Midiレシーバーで呼び出すノーツ生成用スクリプト
     public GameObject notesPrefab;
+    public float speed = 0.5f;
     [SerializeField, EnumIndex(typeof(JointName))] private Transform[] TapPositionAnchor;
 
     /// <summary>
@@ -28,6 +29,6 @@ public class CreateNotes : MonoBehaviour
     public void Note()
     {
         int index = Random.Range(0, JointNumber);
-        Instantiate(notesPrefab, new Vector3(TapPositionAnchor[index].position.x, TapPositionAnchor[index].position.y, 140), transform.rotation);
+        Instantiate(notesPrefab, new Vector3(TapPositionAnchor[index].position.x, TapPositionAnchor[index].position.y, 140 * speed), Quaternion.Euler(0, 0, 0));
     }
 }
