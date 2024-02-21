@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
 
-public class BodyControllerEx : MonoBehaviour
+public class BodyController : MonoBehaviour
 {
     /// <summary>
     /// ジョイント部表示プレハブ

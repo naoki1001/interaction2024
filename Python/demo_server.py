@@ -27,6 +27,30 @@ received_tracking_data = None
 model_left = RawDataForPoseEstimation()
 model_right = RawDataForPoseEstimation()
 
+left_hand_info = {
+    'past_wrist_position': [],
+    'past_wrist_rotation': [],
+    'past_head_position': [],
+    'past_head_rotation': [],
+    'acceleration': [],
+    'gyroscope': [],
+    'ekf_output':[],
+    'head_position': [],
+    'head_rotation': []
+}
+
+right_hand_info = {
+    'past_wrist_position': [],
+    'past_wrist_rotation': [],
+    'past_head_position': [],
+    'past_head_rotation': [],
+    'acceleration': [],
+    'gyroscope': [],
+    'ekf_output':[],
+    'head_position': [],
+    'head_rotation': []
+}
+
 def apply_offset_of_tap_position(pos, rot_matrix, offset=[[0.05], [0.0], [0.0]]):
     return (rot_matrix @ torch.tensor(offset)).T + pos
 
@@ -44,29 +68,29 @@ def predict_part_of_body_left():
     if latest_tracking_data is not None:
         try:
             wrist_pos = [
-                latest_tracking_data['wrist_position_l']['x'],
-                latest_tracking_data['wrist_position_l']['y'],
-                latest_tracking_data['wrist_position_l']['z']
+                latest_tracking_data['leftHandPosition']['x'],
+                latest_tracking_data['leftHandPosition']['y'],
+                latest_tracking_data['leftHandPosition']['z']
             ]
             wrist_rot = [
-                latest_tracking_data['wrist_rotation_l']['w'],
-                latest_tracking_data['wrist_rotation_l']['x'],
-                latest_tracking_data['wrist_rotation_l']['y'],
-                latest_tracking_data['wrist_rotation_l']['z']
+                latest_tracking_data['leftHandRotation']['w'],
+                latest_tracking_data['leftHandRotation']['x'],
+                latest_tracking_data['leftHandRotation']['y'],
+                latest_tracking_data['leftHandRotation']['z']
             ]
             wrist_position = torch.tensor(wrist_pos)
             rot_matrix = compute_rotation_matrix_from_quaternion(torch.tensor(wrist_rot).unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0)
         except:
-            wrist_position = torch.tensor(left_hand_info['past_wrist_position'][-1])
-            rot_matrix = compute_rotation_matrix_from_quaternion(torch.tensor(left_hand_info['past_wrist_rotation'][-1]).unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0)
+            return None
+        
         wrist_position = apply_offset_of_tap_position(wrist_position, rot_matrix).numpy()
-        parts = [part for part in received_tracking_data.keys()]
+        parts = [part for part in received_tracking_data.keys() if not 'LeftShoulder' in part and not 'RightHip' in part]
         part_positions = np.array([
             [
                 received_tracking_data[part]['x'],
                 received_tracking_data[part]['y'],
                 received_tracking_data[part]['z']
-            ] for part in parts 
+            ] for part in parts if not 'LeftShoulder' in part and not 'RightHip' in part
         ])
         diff_parts = part_positions - wrist_position
         part_distance = np.linalg.norm(diff_parts, axis=1)
@@ -78,35 +102,32 @@ def predict_part_of_body_left():
 def predict_part_of_body_right():
     global received_tracking_data
     global latest_tracking_data
-    global right_hand_info
     if latest_tracking_data is not None:
         try:
             wrist_pos = [
-                latest_tracking_data['wrist_position_r']['x'],
-                latest_tracking_data['wrist_position_r']['y'],
-                latest_tracking_data['wrist_position_r']['z']
+                latest_tracking_data['rightHandPosition']['x'],
+                latest_tracking_data['rightHandPosition']['y'],
+                latest_tracking_data['rightHandPosition']['z']
             ]
             wrist_rot = [
-                latest_tracking_data['wrist_rotation_r']['w'],
-                latest_tracking_data['wrist_rotation_r']['x'],
-                latest_tracking_data['wrist_rotation_r']['y'],
-                latest_tracking_data['wrist_rotation_r']['z']
+                latest_tracking_data['rightHandRotation']['w'],
+                latest_tracking_data['rightHandRotation']['x'],
+                latest_tracking_data['rightHandRotation']['y'],
+                latest_tracking_data['rightHandRotation']['z']
             ]
             wrist_position = torch.tensor(wrist_pos)
             rot_matrix = compute_rotation_matrix_from_quaternion(torch.tensor(wrist_rot).unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0)
         except:
-            wrist_position = torch.tensor(right_hand_info['past_wrist_position'][-1])
-            rot_matrix = compute_rotation_matrix_from_quaternion(torch.tensor(right_hand_info['past_wrist_rotation'][-1]).unsqueeze(0).unsqueeze(0)).squeeze(0).squeeze(0)
-        wrist_position = apply_offset_of_tap_position(wrist_position, rot_matrix, offset=[[-0.03], [0.0], [0.0]]).numpy()
-        parts = [
-            part for part in received_tracking_data.keys() if 'Position' in part and not 'Hand' in part
-        ]
+            return None
+        
+        wrist_position = apply_offset_of_tap_position(wrist_position, rot_matrix, offset=[[-0.05], [0.0], [0.0]]).numpy()
+        parts = [part for part in received_tracking_data.keys() if not 'RightShoulder' in part and not 'LeftHip' in part]
         part_positions = np.array([
             [
                 received_tracking_data[part]['x'],
                 received_tracking_data[part]['y'],
                 received_tracking_data[part]['z']
-            ] for part in parts
+            ] for part in parts if not 'RightShoulder' in part and not 'LeftHip' in part
         ])
         diff_parts = part_positions - wrist_position
         part_distance = np.linalg.norm(diff_parts, axis=1)
@@ -118,6 +139,8 @@ def predict_part_of_body_right():
 def udp_server():
     global udp_server_running
     global latest_tracking_data
+    global left_hand_info
+    global right_hand_info
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((UDP_HOST, UDP_PORT))
@@ -126,12 +149,113 @@ def udp_server():
     while udp_server_running:
         data, addr = server_socket.recvfrom(2048)
         latest_tracking_data = json.loads(data.decode('utf-8'))
-        if not latest_tracking_data['is_tracked_l'] or not latest_tracking_data['is_tracked_r']:
+
+        if latest_tracking_data['headPosition'] is not None:
+            head_pos = [
+                latest_tracking_data['headPosition']['x'],
+                latest_tracking_data['headPosition']['y'],
+                latest_tracking_data['headPosition']['z']
+            ]
+
+            head_rot = [
+                latest_tracking_data['headRotation']['w'],
+                latest_tracking_data['headRotation']['x'],
+                latest_tracking_data['headRotation']['y'],
+                latest_tracking_data['headRotation']['z']
+            ]
+        
+            if len(left_hand_info['past_head_position']) < 5:
+                left_hand_info['past_head_position'].append(head_pos)
+            else:
+                left_hand_info['past_head_position'][0:-1] = left_hand_info['past_head_position'][1:]
+                left_hand_info['past_head_position'][-1] = head_pos
+
+            if len(left_hand_info['past_head_rotation']) < 5:
+                left_hand_info['past_head_rotation'].append(head_rot)
+            else:
+                left_hand_info['past_head_rotation'][0:-1] = left_hand_info['past_head_rotation'][1:]
+                left_hand_info['past_head_rotation'][-1] = head_rot
+
+            if len(right_hand_info['past_head_position']) < 5:
+                right_hand_info['past_head_position'].append(head_pos)
+            else:
+                right_hand_info['past_head_position'][0:-1] = right_hand_info['past_head_position'][1:]
+                right_hand_info['past_head_position'][-1] = head_pos
+
+            if len(right_hand_info['past_head_rotation']) < 5:
+                right_hand_info['past_head_rotation'].append(head_rot)
+            else:
+                right_hand_info['past_head_rotation'][0:-1] = right_hand_info['past_head_rotation'][1:]
+                right_hand_info['past_head_rotation'][-1] = head_rot
+
+        if latest_tracking_data['isTrackedLeft']:
+            left_hand_info['head_position'] = []
+            left_hand_info['head_rotation'] = []
+            wrist_pos_l = [
+                latest_tracking_data['leftHandPosition']['x'],
+                latest_tracking_data['leftHandPosition']['y'],
+                latest_tracking_data['leftHandPosition']['z']
+            ]
+            wrist_rot_l = [
+                latest_tracking_data['leftHandRotation']['w'],
+                latest_tracking_data['leftHandRotation']['x'],
+                latest_tracking_data['leftHandRotation']['y'],
+                latest_tracking_data['leftHandRotation']['z']
+            ]
+
+            if len(left_hand_info['past_wrist_position']) < 5:
+                left_hand_info['past_wrist_position'].append(wrist_pos_l)
+            else:
+                left_hand_info['past_wrist_position'][0:-1] = left_hand_info['past_wrist_position'][1:]
+                left_hand_info['past_wrist_position'][-1] = wrist_pos_l
+            
+            if len(left_hand_info['past_wrist_rotation']) < 5:
+                left_hand_info['past_wrist_rotation'].append(wrist_rot_l)
+            else:
+                left_hand_info['past_wrist_rotation'][0:-1] = left_hand_info['past_wrist_rotation'][1:]
+                left_hand_info['past_wrist_rotation'][-1] = wrist_rot_l
+        else:
+            if latest_tracking_data['headPosition'] is not None:
+                left_hand_info['head_position'].append(head_pos)
+                left_hand_info['head_rotation'].append(head_rot)
+
+        if latest_tracking_data['isTrackedRight']:
+            right_hand_info['head_position'] = []
+            right_hand_info['head_rotation'] = []
+            wrist_pos_r = [
+                latest_tracking_data['rightHandPosition']['x'],
+                latest_tracking_data['rightHandPosition']['y'],
+                latest_tracking_data['rightHandPosition']['z']
+            ]
+            wrist_rot_r = [
+                latest_tracking_data['rightHandRotation']['w'],
+                latest_tracking_data['rightHandRotation']['x'],
+                latest_tracking_data['rightHandRotation']['y'],
+                latest_tracking_data['rightHandRotation']['z']
+            ]
+
+            if len(right_hand_info['past_wrist_position']) < 5:
+                right_hand_info['past_wrist_position'].append(wrist_pos_r)
+            else:
+                right_hand_info['past_wrist_position'][0:-1] = right_hand_info['past_wrist_position'][1:]
+                right_hand_info['past_wrist_position'][-1] = wrist_pos_r
+            
+            if len(right_hand_info['past_wrist_rotation']) < 5:
+                right_hand_info['past_wrist_rotation'].append(wrist_rot_r)
+            else:
+                right_hand_info['past_wrist_rotation'][0:-1] = right_hand_info['past_wrist_rotation'][1:]
+                right_hand_info['past_wrist_rotation'][-1] = wrist_rot_r
+        else:
+            if latest_tracking_data['headPosition'] is not None:
+                right_hand_info['head_position'].append(head_pos)
+                right_hand_info['head_rotation'].append(head_rot)
+            
+        if not latest_tracking_data['isTrackedLeft'] or not latest_tracking_data['isTrackedRight']:
             data = {
-                'wrist_position_l': latest_tracking_data['wrist_position_l'],
-                'wrist_rotation_l': latest_tracking_data['wrist_rotation_l'],
-                'wrist_position_r': latest_tracking_data['wrist_position_r'],
-                'wrist_rotation_r': latest_tracking_data['wrist_rotation_r']
+                'wrist_position_l': latest_tracking_data['leftHandPosition'],
+                'wrist_rotation_l': latest_tracking_data['leftHandRotation'],
+                'wrist_position_r': latest_tracking_data['rightHandPosition'],
+                'wrist_rotation_r': latest_tracking_data['rightHandRotation']
             }
             response = json.dumps(data, ensure_ascii=False, indent=2)
             server_socket.sendto(response.encode('utf-8'), addr)
@@ -225,4 +349,8 @@ def send_tap_data():
 if __name__ == "__main__":
     udp_server_running = True
     thread_tapdata = threading.Thread(target=send_tap_data)
+    thread_hand = threading.Thread(target=udp_server)
+    thread_body = threading.Thread(target=udp_server_body)
     thread_tapdata.start()
+    thread_hand.start()
+    thread_body.start()

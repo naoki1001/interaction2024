@@ -28,7 +28,7 @@ class PoseEstimationNetwork(nn.Module):
         self.positional_encoding = PositionalEncoding(d_model=embed)
 
         self.conv1 = nn.Sequential(
-            nn.Conv1d(18, 42, kernel_size=3, stride=1, padding=1),
+            nn.Conv1d(21, 42, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm1d(42),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv1d(42, 42, kernel_size=3, stride=1, padding=1),
@@ -110,9 +110,72 @@ class PoseEstimationNetwork(nn.Module):
 from filters import *
 
 class PoseEstimator(nn.Module):
-    def __init__(self):
+    def __init__(self, embed=256, heads=8, init_weights: bool = True):
         super(PoseEstimator, self).__init__()
-        self.network = PoseEstimationNetwork()
+        self.rnn = nn.RNN(input_size=18, hidden_size=256, num_layers=2, dropout=0.1)
+        self.positional_encoding = PositionalEncoding(d_model=embed)
+
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(21, 42, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(42),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv1d(42, 42, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(42),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
+        )
+
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(42, 84, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(84),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv1d(84, 84, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(84),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
+        )
+
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(84, 168, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(168),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv1d(168, 168, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(168),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
+        )
+
+        self.dense = nn.Sequential(
+            nn.Linear(168, 256)
+        )
+
+        encoder_layer = nn.TransformerEncoderLayer(d_model=embed, nhead=heads, dim_feedforward=2048, dropout=0.1, batch_first=True)
+        self.tranformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
+
+        self.wrist_position_decoder_network = nn.Sequential(
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 3)
+        )
+
+        self.wrist_rotation_decoder_network = nn.Sequential(
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 6)
+        )
+
+        if init_weights:
+            for m in self.modules():
+                if isinstance(m, nn.Conv1d):
+                    nn.init.kaiming_uniform_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
         
     def forward(self, x, y):
         x_rnn, _ = self.rnn(x, None)
