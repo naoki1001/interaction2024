@@ -16,7 +16,8 @@ public class DemoManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI score_text;
     [SerializeField, EnumIndex(typeof(JointName))] private GameObject[] TapPositionAnchor;
     // [SerializeField, EnumIndex(typeof(JointName))] private Transform[] TrackPointReferences;
-    public int score = 0;
+    int score = 0;
+    int combo = 0;
     private NotesCollisionManager notesCollisionManager;
 
     /// <summary>
@@ -41,6 +42,7 @@ public class DemoManager : MonoBehaviour
     private int port;
     private bool is_tapped_l = false;
     private bool is_tapped_r = false;
+    private float tap_position_z;
 
     [System.Serializable]
     public class ReceivedTapData
@@ -68,6 +70,7 @@ public class DemoManager : MonoBehaviour
     void Start()
     {
         score_text.text = "Score: 0";
+        tap_position_z = TapPositionAnchor[0].transform.position.z;
         // audio = gameObject.AddComponent<AudioSource>();
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
@@ -77,17 +80,36 @@ public class DemoManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        score_text.text = "Score: " + score.ToString();
+        score_text.text = "Score: " + score.ToString() + "\n";
+        score_text.text += "Combo: " + combo.ToString();
         if (receivedTapData != null)
         {
             if (receivedTapData.is_tapped_l && !is_tapped_l && receivedTapData.tapped_part_l != null)
             {
                 notesCollisionManager = TapPositionAnchor[(int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_l)].GetComponent<NotesCollisionManager>();
+                float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
                 if (notesCollisionManager.inLine)
                 {
                     is_tapped_l = true;
                     receivedTapData.is_tapped_l = false;
-                    score += 10;
+                    if (diff < 0.5f)
+                    {
+                        score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
+                    }
+                    else
+                    {
+                        score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
+                    }
+                    combo++;
+                    Destroy(notesCollisionManager.note);
+                }
+                if (diff > 1.0f)
+                {
+                    if (notesCollisionManager.note)
+                    {
+                        combo = 0;
+                        Destroy(notesCollisionManager.note);
+                    }
                 }
             }
             else if (!receivedTapData.is_tapped_l || receivedTapData.tapped_part_l == null)
@@ -98,11 +120,29 @@ public class DemoManager : MonoBehaviour
             if (receivedTapData.is_tapped_r && !is_tapped_r && receivedTapData.tapped_part_r != null)
             {
                 notesCollisionManager = TapPositionAnchor[(int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_r)].GetComponent<NotesCollisionManager>();
+                float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
                 if (notesCollisionManager.inLine)
                 {
                     is_tapped_r = true;
                     receivedTapData.is_tapped_r = false;
-                    score += 10;
+                    if (diff < 0.5f)
+                    {
+                        score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
+                    }
+                    else
+                    {
+                        score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
+                    }
+                    combo++;
+                    Destroy(notesCollisionManager.note);
+                }
+                if (diff > 1.0f)
+                {
+                    if (notesCollisionManager.note)
+                    {
+                        combo = 0;
+                        Destroy(notesCollisionManager.note);
+                    }
                 }
             }
             else if (!receivedTapData.is_tapped_r || receivedTapData.tapped_part_r == null)
