@@ -221,8 +221,8 @@ class ExtendedKalmanFilterForPoseEstimation(nn.Module):
     def calc_F(self, x, u):
         """
         Compute the Jacobian matrix F_k for the state transition function.
-        x_k: Current state quaternion [q_w, q_x, q_y, q_z]
-        u_k: Control input [omega_x * delta_t, omega_y * delta_t, omega_z * delta_t]
+        x_k: Current state vector [p_x, p_y, p_z, v_x, v_y, v_z, q_w, q_x, q_y, q_z]
+        u_k: Control input [a_x, a_y, a_z, w_x, w_y, w_z]
         """
         dt = 0.005
         # Construct the F_k matrix
@@ -247,142 +247,152 @@ class ExtendedKalmanFilterForPoseEstimation(nn.Module):
         return x_predicted
 
 class UnsentedKalmanFilterForPoseEstimation(nn.Module):
-    def __init__(self, dim_x=10, dim_z=3, dim_u=6, dt=0.005):
-        super(UnsentedKalmanFilterForPoseEstimation, self).__init__()
-        self.dim_x = dim_x
-        self.dim_z = dim_z
-        self.dim_u = dim_u
+    def __init__(self, dim_x, dim_z, dt, hx, fx, points, 
+                 sqrt_fn=None, x_mean_fn=None, z_mean_fn=None, 
+                 residual_x=None, residual_z=None, state_add=None):
+        
+        self.x = torch.zeros(dim_x)
+        self.P = torch.eye(dim_x)
+        self.x_prior = torch.clone(self.x)
+        self.P_prior = torch.clone(self.P)
+        self.Q = torch.eye(dim_x)
+        self.R = torch.eye(dim_z)
+        self._dim_x = dim_x
+        self._dim_z = dim_z
+        self.points_fn = points
+        self._dt = dt
+        self._num_sigmas = points.num_sigmas()
+        self.hx = hx
+        self.fx = fx
+        self.x_mean = x_mean_fn if x_mean_fn is not None else self.mean_fn
+        self.z_mean = z_mean_fn if z_mean_fn is not None else self.mean_fn
 
-        self.x = torch.tensor([1.0, 0.0, 0.0, 0.0]) # state 
-        self.P = torch.eye(dim_x) * (1.74E-2 * dt ** 2)  # uncertainty covariance
-        self.Q = torch.eye(dim_x) * (1.74E-2 * dt ** 2)  # process uncertainty
-        self.R = torch.eye(dim_z) * (1.0 * dt ** 2)  # state uncertainty
-        self.F = torch.eye(dim_x)      # state transition matrix
-        self.B = 0                     # control transition matrix
+        if sqrt_fn is None:
+            self.msqrt = torch.linalg.cholesky
+        else:
+            self.msqrt = sqrt_fn
 
-        # These matrices will be updated during each step
-        self.y = torch.zeros(dim_z, 1) # residual
-        self.K = torch.zeros(dim_x, dim_z) # Kalman gain
-        self.S = torch.zeros(dim_z, dim_z) # system uncertainty
-        self.z = torch.zeros(dim_z, 1) # Last measurement
+        self.Wm, self.Wc = points.Wm, points.Wc
 
-        # Identity matrix
-        self._I = torch.eye(dim_x)
+        if residual_x is None:
+            self.residual_x = lambda x, y: x - y
+        else:
+            self.residual_x = residual_x
 
-    def forward(self, z, u):
-        self.F = self.calc_F(self.x, u)
+        if residual_z is None:
+            self.residual_z = lambda x, y: x - y
+        else:
+            self.residual_z = residual_z
 
-        if z is not None and z.numel() == 1 and self.dim_z == 1:
-            z = z.view(-1, 1)
+        if state_add is None:
+            self.state_add = lambda x, y: x + y
+        else:
+            self.state_add = state_add
 
-        F = self.F
-        B = self.B
-        P = self.P
-        Q = self.Q
-        x = self.x
+        self.sigmas_f = torch.zeros((self._num_sigmas, self._dim_x))
+        self.sigmas_h = torch.zeros((self._num_sigmas, self._dim_z))
 
-        H = self.HJacobian(x)
+        self.K = torch.zeros((dim_x, dim_z))
+        self.y = torch.zeros((dim_z))
+        self.z = torch.zeros((dim_z, 1))
+        self.S = torch.zeros((dim_z, dim_z))
+        self.SI = torch.zeros((dim_z, dim_z))
 
-        # Predict step
-        self.predict_x(u)
-        x = self.x
-        P = torch.matmul(torch.matmul(F, P), F.t()) + Q
+        self.inv = torch.linalg.inv
+
+        self.x_prior = torch.clone(self.x)
+        self.P_prior = torch.clone(self.P)
+
+        self.x_post = torch.clone(self.x)
+        self.P_post = torch.clone(self.P)
+
+    def predict(self, dt=None, UT=None, fx_args=None):
+        if dt is None:
+            dt = self._dt
+        
+        if fx_args is None:
+            fx_args = {}
+
+        # Calculate sigma points for given mean and covariance
+        self.compute_process_sigmas(dt, **fx_args)
+
+        if UT is None:
+            # Implement or use a provided unscented transform function compatible with PyTorch
+            self.x, self.P = self.unscented_transform(self.sigmas_f, self.Wm, self.Wc, self.Q)
+        else:
+            self.x, self.P = UT(self.sigmas_f, self.Wm, self.Wc, self.Q, self.x_mean, self.residual_x)
+
+        # Update sigma points to reflect the new state
+        self.sigmas_f = self.points_fn.sigma_points(self.x, self.P)
 
         # Save prior
-        self.x_prior = x.clone()
-        self.P_prior = P.clone()
+        self.x_prior = self.x.clone()
+        self.P_prior = self.P.clone()
 
-        # Update step
-        PHT = torch.matmul(P, H.t())
-        self.S = torch.matmul(H, PHT) + self.R
-        try:
-            self.K = torch.matmul(PHT, torch.inverse(self.S))
-        except:
-            self.K = torch.matmul(PHT, torch.pinverse(self.S))
+    def update(self, z, R=None, UT=None, hx_args=None):
+        if hx_args is None:
+            hx_args = {}
+        
+        if R is None:
+            R = self.R
+        elif torch.is_tensor(R) and R.dim() == 0:  # if R is a scalar
+            R = torch.eye(self._dim_z, device=R.device) * R
+        
+        if UT is None:
+            # Implement or use a provided unscented transform function compatible with PyTorch
+            zp, S = self.unscented_transform(self.sigmas_h, self.Wm, self.Wc, R, self.z_mean, self.residual_z)
+        else:
+            zp, S = UT(self.sigmas_h, self.Wm, self.Wc, R, self.z_mean, self.residual_z)
 
-        self.y = z - self.Hx(x)
-        print(self.K.size())
-        print(self.y.size())
-        self.x = x + torch.matmul(self.K, self.y)
+        self.SI = self.inv(S)
 
-        I_KH = self._I - torch.matmul(self.K, H)
-        self.P = torch.matmul(torch.matmul(I_KH, P), I_KH.t()) + torch.matmul(torch.matmul(self.K, self.R), self.K.t())
+        # Compute cross variance
+        Pxz = self.cross_variance(self.x, zp)
+
+        self.K = torch.matmul(Pxz, self.SI)
+        self.y = self.residual_z(z, zp)
+
+        # Update state estimate and covariance
+        self.x = self.state_add(self.x, torch.matmul(self.K, self.y))
+        self.P = self.P - torch.matmul(self.K, torch.matmul(S, self.K.T))
 
         # Save measurement and posterior state
         self.z = z.clone()
         self.x_post = self.x.clone()
         self.P_post = self.P.clone()
 
-        return self.x
+    def compute_process_sigmas(self, dt, **fx_args):
+        sigmas = self.points_fn.sigma_points(self.x, self.P)
+        for i, s in enumerate(sigmas):
+            self.sigmas_f[i] = self.fx(s, dt, **fx_args)
 
-    def predict_x(self, u=0):
-        self.x = self.f(self.x, u)
+    def cross_variance(self, x, zp):
+        Pxz = torch.zeros((self._dim_x, self._dim_z), device=x.device)
+        for i in range(self._num_sigmas):
+            dx = self.residual_x(self.sigmas_f[i], x)
+            dz = self.residual_z(self.sigmas_h[i], zp)
+            Pxz += self.Wc[i] * torch.outer(dx, dz)
+        return Pxz
 
-    def HJacobian(self, x):
-        """
-        Jacobian of the observation function with respect to the quaternion.
-        x: Quaternion [q_w, q_x, q_y, q_z]
-        """
-        q_w, q_x, q_y, q_z = x
+    def unscented_transform(self, sigmas, Wm, Wc, noise_cov, mean_fn=None, residual_fn=None):
+        # Implement the unscented transform using PyTorch operations
+        # This is a placeholder implementation. You need to adapt it based on your specific needs
+        if mean_fn is None:
+            mean_fn = self.mean_fn
+        if residual_fn is None:
+            residual_fn = self.residual_x  # or self.residual_z as appropriate
 
-        # Partial derivatives of theta and phi with respect to quaternion components
-        H = torch.zeros((2, 4))
-        H[0, 0] = 2 * q_y / (1 + (2 * (q_w*q_y + q_x*q_z))**2)
-        H[0, 1] = 2 * q_z / (1 + (2 * (q_w*q_y + q_x*q_z))**2)
-        H[0, 2] = 2 * q_w / (1 - (2 * (q_y**2 + q_z**2))**2)
-        H[0, 3] = 2 * q_x / (1 - (2 * (q_y**2 + q_z**2))**2)
-        H[1, 0] = 2 * q_x / (1 + (2 * (q_w*q_x + q_y*q_z))**2)
-        H[1, 1] = 2 * q_w / (1 - (2 * (q_x**2 + q_z**2))**2)
-        H[1, 2] = 2 * q_z / (1 + (2 * (q_w*q_x + q_y*q_z))**2)
-        H[1, 3] = 2 * q_y / (1 - (2 * (q_x**2 + q_z**2))**2)
+        # Calculate mean
+        mean = mean_fn(sigmas, Wm)
 
-        return H
+        # Calculate covariance
+        covariance = torch.zeros_like(noise_cov)
+        for i in range(sigmas.size(0)):
+            residual = residual_fn(sigmas[i], mean)
+            covariance += Wc[i] * torch.outer(residual, residual)
+        covariance += noise_cov
 
-    def Hx(self, x):
-        """
-        Observation function that converts quaternion to pitch and roll angles.
-        x: Quaternion [q_w, q_x, q_y, q_z]
-        """
-        # Calculate pitch and roll from the quaternion
-        q_w, q_x, q_y, q_z = x
-        theta = torch.atan2(2*(q_w*q_y + q_x*q_z), 1 - 2*(q_y**2 + q_z**2))
-        phi = torch.atan2(2*(q_w*q_x + q_y*q_z), 1 - 2*(q_x**2 + q_z**2))
-        
-        return torch.tensor([theta, phi])
-
-    def calc_F(self, x, u):
-        """
-        Compute the Jacobian matrix F_k for the state transition function.
-        x_k: Current state quaternion [q_w, q_x, q_y, q_z]
-        u_k: Control input [omega_x * delta_t, omega_y * delta_t, omega_z * delta_t]
-        """
-        dt = 0.005
-        # Construct the F_k matrix
-        F = torch.eye(4) + 0.5 * dt * torch.tensor([
-            [0, -u[0], -u[1], -u[2]],
-            [u[0], 0, u[2], -u[1]],
-            [u[1], -u[2], 0, u[0]],
-            [u[2], u[1], -u[0], 0]
-        ], dtype=x.dtype)
-
-        return F
-
-    def f(self, x, u):
-        """
-        Updates the quaternion based on the angular velocity and time interval using PyTorch.
-        x is the current quaternion, u is the control input.
-        """
-        u_k = torch.tensor([0, *u])
-        # Compute the quaternion derivative
-        q_dot = 0.5 * x#quaternion_multiplication(x, u_k)
-
-        # Update the quaternion
-        x_updated = x + q_dot
-
-        # Normalize the updated quaternion
-        x_normalized = x_updated / torch.norm(x_updated)
-
-        return x_normalized
+        return mean, covariance
 
 class ParticleFilterForPoseEstimation(nn.Module):
     def __init__(self, dim_x=10, dim_z=3, dim_u=6, dt=0.005):
