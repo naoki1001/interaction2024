@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Title.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/ScoreWindow.unity
+    guid: 831b9998b307cfa4fb22eca63867b5ba
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: f1c9643ad7e20fb46944d31ea2cf96f1, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 2c60c0a38aaea7448a4c93d43126d526, type: 2}
