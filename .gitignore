@@ -240,13 +240,16 @@ unity-chan!/
 Oculus/
 TextMesh\ Pro/
 XR/
+Ultra\ Skybox\ Fog/
 unity-chan!.meta
 Oculus.meta
 TextMesh\ Pro.meta
 XR.meta
+Ultra\ Skybox\ Fog.meta
 
 */Fonts/*
 Fonts.meta
 
 *.mid*
 *.mp3*
+*.png*

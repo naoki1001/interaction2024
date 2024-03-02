@@ -5,6 +5,8 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -16,8 +18,10 @@ public class DemoManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI score_text;
     [SerializeField, EnumIndex(typeof(JointName))] private GameObject[] TapPositionAnchor;
     // [SerializeField, EnumIndex(typeof(JointName))] private Transform[] TrackPointReferences;
+    public PlayableDirector director;
     int score = 0;
     int combo = 0;
+    int max_combo = 0;
     private NotesCollisionManager notesCollisionManager;
 
     /// <summary>
@@ -71,6 +75,7 @@ public class DemoManager : MonoBehaviour
     {
         score_text.text = "Score: 0";
         tap_position_z = TapPositionAnchor[0].transform.position.z;
+        director.timeUpdateMode = DirectorUpdateMode.Manual;
         // audio = gameObject.AddComponent<AudioSource>();
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
@@ -82,6 +87,8 @@ public class DemoManager : MonoBehaviour
     {
         score_text.text = "Score: " + score.ToString() + "\n";
         score_text.text += "Combo: " + combo.ToString();
+        director.time += Time.deltaTime;
+        director.Evaluate();
         if (receivedTapData != null)
         {
             if (receivedTapData.is_tapped_l && !is_tapped_l && receivedTapData.tapped_part_l != null)
@@ -150,7 +157,39 @@ public class DemoManager : MonoBehaviour
                 is_tapped_r = false;
             }
         }
+
+        max_combo = Mathf.Max(max_combo, combo);
+        if (director.time + 0.5f >= director.duration)
+        {
+            receiveThread.Abort();
+            PlayerPrefs.SetInt("SCORE", score);
+            PlayerPrefs.SetInt("MAX COMBO", max_combo);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene("ScoreWindow");
+        }
     }
+
+    // void OnEnable()
+    // {
+    //     director.stopped += OnPlayableDirectorStopped;
+    // }
+
+    // void OnPlayableDirectorStopped(PlayableDirector aDirector)
+    // {
+    //     if (director == aDirector)
+    //     {
+    //         receiveThread.Abort();
+    //         PlayerPrefs.SetInt("SCORE", score);
+    //         PlayerPrefs.SetInt("MAX COMBO", max_combo);
+    //         PlayerPrefs.Save();
+    //         SceneManager.LoadScene("ScoreWindow");
+    //     }
+    // }
+
+    // void OnDisable()
+    // {
+    //     director.stopped -= OnPlayableDirectorStopped;
+    // }
 
     void OnApplicationQuit()
     {
