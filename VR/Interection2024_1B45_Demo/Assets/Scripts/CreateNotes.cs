@@ -9,7 +9,9 @@ public class CreateNotes : MonoBehaviour
     public float speed = 0.5f;
     [SerializeField, EnumIndex(typeof(JointName))] private Transform[] TapPositionAnchor;
     [SerializeField, EnumIndex(typeof(JointName))] private Material[] TapPositionAnchorMaterial;
+    [SerializeField] private GameObject demoObject;
     GameObject _instance;
+    MoveNotes moveNotes;
 
     /// <summary>
     /// 各インデックスのジョイントの名前
@@ -33,5 +35,7 @@ public class CreateNotes : MonoBehaviour
         int index = Random.Range(0, JointNumber);
         _instance = Instantiate(notesPrefab, new Vector3(TapPositionAnchor[index].position.x, TapPositionAnchor[index].position.y, 140 * speed), Quaternion.Euler(0, 0, 0));
         _instance.GetComponentInChildren<MeshRenderer>().material = TapPositionAnchorMaterial[index];
+        moveNotes = _instance.GetComponent<MoveNotes>();
+        moveNotes.demoManager = demoObject.GetComponent<DemoManager>();
     }
 }

@@ -17,10 +17,10 @@ public class DemoManager : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI score_text;
     [SerializeField, EnumIndex(typeof(JointName))] private GameObject[] TapPositionAnchor;
-    // [SerializeField, EnumIndex(typeof(JointName))] private Transform[] TrackPointReferences;
+    [SerializeField, EnumIndex(typeof(JointName))] private TextMeshProUGUI[] TapPositionText;
     public PlayableDirector director;
     int score = 0;
-    int combo = 0;
+    public int combo = 0;
     int max_combo = 0;
     private NotesCollisionManager notesCollisionManager;
 
@@ -93,7 +93,8 @@ public class DemoManager : MonoBehaviour
         {
             if (receivedTapData.is_tapped_l && !is_tapped_l && receivedTapData.tapped_part_l != null)
             {
-                notesCollisionManager = TapPositionAnchor[(int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_l)].GetComponent<NotesCollisionManager>();
+                int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_l);
+                notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
                 float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
                 if (notesCollisionManager.inLine)
                 {
@@ -102,20 +103,24 @@ public class DemoManager : MonoBehaviour
                     if (diff < 0.5f)
                     {
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
+                        TapPositionText[tapPositionIndex].text = "Perfect";
                     }
                     else
                     {
                         score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
+                        TapPositionText[tapPositionIndex].text = "Good";
                     }
                     combo++;
+                    notesCollisionManager.inLine = false;
                     Destroy(notesCollisionManager.note);
                 }
-                if (diff > 1.0f)
+                else
                 {
                     if (notesCollisionManager.note)
                     {
                         combo = 0;
                         Destroy(notesCollisionManager.note);
+                        TapPositionText[tapPositionIndex].text = "Miss";
                     }
                 }
             }
@@ -126,7 +131,8 @@ public class DemoManager : MonoBehaviour
 
             if (receivedTapData.is_tapped_r && !is_tapped_r && receivedTapData.tapped_part_r != null)
             {
-                notesCollisionManager = TapPositionAnchor[(int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_r)].GetComponent<NotesCollisionManager>();
+                int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_r);
+                notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
                 float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
                 if (notesCollisionManager.inLine)
                 {
@@ -134,21 +140,29 @@ public class DemoManager : MonoBehaviour
                     receivedTapData.is_tapped_r = false;
                     if (diff < 0.5f)
                     {
+                        // Perfect
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
+                        TapPositionText[tapPositionIndex].text = "Perfect";
+
                     }
                     else
                     {
+                        // Good
                         score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
+                        TapPositionText[tapPositionIndex].text = "Good";
                     }
                     combo++;
+                    notesCollisionManager.inLine = false;
                     Destroy(notesCollisionManager.note);
                 }
-                if (diff > 1.0f)
+                else
                 {
                     if (notesCollisionManager.note)
                     {
+                        // Miss
                         combo = 0;
                         Destroy(notesCollisionManager.note);
+                        TapPositionText[tapPositionIndex].text = "Miss";
                     }
                 }
             }

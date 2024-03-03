@@ -250,15 +250,15 @@ def udp_server():
                 right_hand_info['head_position'].append(head_pos)
                 right_hand_info['head_rotation'].append(head_rot)
             
-        if not latest_tracking_data['isTrackedLeft'] or not latest_tracking_data['isTrackedRight']:
-            data = {
-                'wrist_position_l': latest_tracking_data['leftHandPosition'],
-                'wrist_rotation_l': latest_tracking_data['leftHandRotation'],
-                'wrist_position_r': latest_tracking_data['rightHandPosition'],
-                'wrist_rotation_r': latest_tracking_data['rightHandRotation']
-            }
-            response = json.dumps(data, ensure_ascii=False, indent=2)
-            server_socket.sendto(response.encode('utf-8'), addr)
+        # if not latest_tracking_data['isTrackedLeft'] or not latest_tracking_data['isTrackedRight']:
+        #     data = {
+        #         'wrist_position_l': latest_tracking_data['leftHandPosition'],
+        #         'wrist_rotation_l': latest_tracking_data['leftHandRotation'],
+        #         'wrist_position_r': latest_tracking_data['rightHandPosition'],
+        #         'wrist_rotation_r': latest_tracking_data['rightHandRotation']
+        #     }
+        #     response = json.dumps(data, ensure_ascii=False, indent=2)
+        #     server_socket.sendto(response.encode('utf-8'), addr)
 
     server_socket.close()
     print("UDP server stopped")

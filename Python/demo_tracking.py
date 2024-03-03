@@ -222,14 +222,18 @@ def update_tracking():
                         latest_tracking_data['leftHandRotation']['y'],
                         latest_tracking_data['leftHandRotation']['z']
                     ])
-                    wrist_pos_l, wrist_rot_l = model_left.forward(z=z, u=u)
+                    # wrist_pos_l, wrist_rot_l = model_left.forward(z=z, u=u)
+                    wrist_pos_l, wrist_rot_l = model_left.forward(u=u)
                 else:
                     wrist_pos_l, wrist_rot_l = model_left.forward(u=u)
 
                 latest_predicted_data['leftHandPosition'] = {
-                    'x': wrist_pos_l[0],
-                    'y': wrist_pos_l[1],
-                    'z': wrist_pos_l[2]
+                    'x': latest_tracking_data['leftHandPosition']['x'],
+                    'y': latest_tracking_data['leftHandPosition']['y'],
+                    'z': latest_tracking_data['leftHandPosition']['z'],
+                    # 'x': wrist_pos_l[0],
+                    # 'y': wrist_pos_l[1],
+                    # 'z': wrist_pos_l[2]
                 }
                 latest_predicted_data['leftHandRotation'] = {
                     'w': wrist_rot_l[0],
@@ -244,22 +248,26 @@ def update_tracking():
                 ])
                 if latest_tracking_data['isTrackedRight']:
                     z = np.array([
-                    latest_tracking_data['rightHandPosition']['x'],
-                    latest_tracking_data['rightHandPosition']['y'],
-                    latest_tracking_data['rightHandPosition']['z'],
-                    latest_tracking_data['rightHandRotation']['w'],
-                    latest_tracking_data['rightHandRotation']['x'],
-                    latest_tracking_data['rightHandRotation']['y'],
-                    latest_tracking_data['rightHandRotation']['z']
-                ])
-                    wrist_pos_r, wrist_rot_r = model_right.forward(z=z, u=u)
+                        latest_tracking_data['rightHandPosition']['x'],
+                        latest_tracking_data['rightHandPosition']['y'],
+                        latest_tracking_data['rightHandPosition']['z'],
+                        latest_tracking_data['rightHandRotation']['w'],
+                        latest_tracking_data['rightHandRotation']['x'],
+                        latest_tracking_data['rightHandRotation']['y'],
+                        latest_tracking_data['rightHandRotation']['z']
+                    ])
+                    # wrist_pos_r, wrist_rot_r = model_right.forward(z=z, u=u)
+                    wrist_pos_r, wrist_rot_r = model_right.forward(u=u)
                 else:
                     wrist_pos_r, wrist_rot_r = model_right.forward(u=u)
 
                 latest_predicted_data['rightHandPosition'] = {
-                    'x': wrist_pos_r[0],
-                    'y': wrist_pos_r[1],
-                    'z': wrist_pos_r[2]
+                    'x': latest_tracking_data['rightHandPosition']['x'],
+                    'y': latest_tracking_data['rightHandPosition']['y'],
+                    'z': latest_tracking_data['rightHandPosition']['z'],
+                    # 'x': wrist_pos_r[0],
+                    # 'y': wrist_pos_r[1],
+                    # 'z': wrist_pos_r[2]
                 }
                 latest_predicted_data['rightHandRotation'] = {
                     'w': wrist_rot_r[0],

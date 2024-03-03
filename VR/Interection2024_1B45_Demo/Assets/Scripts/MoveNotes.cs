@@ -5,10 +5,10 @@ using UnityEngine;
 public class MoveNotes : MonoBehaviour
 {
     public float speed = 0.50f;
+    public DemoManager demoManager;
     // Start is called before the first frame update
     void Start()
     {
-        
     }
 
     // Update is called once per frame
@@ -18,6 +18,7 @@ public class MoveNotes : MonoBehaviour
 
         if (transform.position.z < 0.0f)
         {
+            demoManager.combo = 0;
             Destroy(gameObject);
         }
     }
