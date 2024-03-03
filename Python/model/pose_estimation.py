@@ -115,7 +115,7 @@ class PoseEstimator(nn.Module):
         self.rnn = nn.RNN(input_size=18, hidden_size=256, num_layers=2, dropout=0.1)
         self.positional_encoding = PositionalEncoding(d_model=embed)
 
-        self.conv1 = nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv1d(21, 42, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm1d(42),
             nn.LeakyReLU(negative_slope=0.2),
@@ -123,9 +123,6 @@ class PoseEstimator(nn.Module):
             nn.BatchNorm1d(42),
             nn.LeakyReLU(negative_slope=0.2),
             nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
-        )
-
-        self.conv2 = nn.Sequential(
             nn.Conv1d(42, 84, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm1d(84),
             nn.LeakyReLU(negative_slope=0.2),
@@ -133,9 +130,6 @@ class PoseEstimator(nn.Module):
             nn.BatchNorm1d(84),
             nn.LeakyReLU(negative_slope=0.2),
             nn.MaxPool1d(kernel_size=2, stride=2, padding=0),
-        )
-
-        self.conv3 = nn.Sequential(
             nn.Conv1d(84, 168, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm1d(168),
             nn.LeakyReLU(negative_slope=0.2),
@@ -181,9 +175,7 @@ class PoseEstimator(nn.Module):
         x_rnn, _ = self.rnn(x, None)
         x_rnn = x_rnn[:, -1, :].unsqueeze(1)
 
-        x_conv = self.conv1(y)
-        x_conv = self.conv2(x_conv)
-        x_conv = self.conv3(x_conv)
+        x_conv = self.conv(y)
         x_conv = torch.transpose(x_conv, 1, 2)
         x_dense = self.dense(x_conv)
         
