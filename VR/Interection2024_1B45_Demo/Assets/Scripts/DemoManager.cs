@@ -22,6 +22,7 @@ public class DemoManager : MonoBehaviour
     int score = 0;
     public int combo = 0;
     int max_combo = 0;
+    [SerializeField] ParticleSystem tapEffect;
     private NotesCollisionManager notesCollisionManager;
 
     /// <summary>
@@ -96,23 +97,25 @@ public class DemoManager : MonoBehaviour
                 int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_l);
                 notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
                 float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
+                tapEffect.transform.position = TapPositionAnchor[tapPositionIndex].transform.position;
+                tapEffect.Emit(1);
                 if (notesCollisionManager.inLine)
                 {
-                    is_tapped_l = true;
-                    receivedTapData.is_tapped_l = false;
                     if (diff < 0.5f)
                     {
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
-                        TapPositionText[tapPositionIndex].text = "Perfect";
+                        TapPositionText[tapPositionIndex].text = "<color=#ff0000>P<color=#ff8000>e<color=#ffff00>r<color=#00ff00>f<color=#0000ff>e<color=#165e83>c<color=#ff00ff>t";
                     }
                     else
                     {
                         score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
                         TapPositionText[tapPositionIndex].text = "Good";
+                        TapPositionText[tapPositionIndex].color = Color.green;
                     }
                     combo++;
                     notesCollisionManager.inLine = false;
                     Destroy(notesCollisionManager.note);
+                    StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                 }
                 else
                 {
@@ -121,8 +124,12 @@ public class DemoManager : MonoBehaviour
                         combo = 0;
                         Destroy(notesCollisionManager.note);
                         TapPositionText[tapPositionIndex].text = "Miss";
+                        TapPositionText[tapPositionIndex].color = Color.blue;
+                        StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                     }
                 }
+                is_tapped_l = true;
+                receivedTapData.is_tapped_l = false;
             }
             else if (!receivedTapData.is_tapped_l || receivedTapData.tapped_part_l == null)
             {
@@ -134,15 +141,15 @@ public class DemoManager : MonoBehaviour
                 int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_r);
                 notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
                 float diff = Mathf.Abs(notesCollisionManager.area.z - tap_position_z);
+                tapEffect.transform.position = TapPositionAnchor[tapPositionIndex].transform.position;
+                tapEffect.Emit(1);
                 if (notesCollisionManager.inLine)
                 {
-                    is_tapped_r = true;
-                    receivedTapData.is_tapped_r = false;
                     if (diff < 0.5f)
                     {
                         // Perfect
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
-                        TapPositionText[tapPositionIndex].text = "Perfect";
+                        TapPositionText[tapPositionIndex].text = "<color=#ff0000>P<color=#ff8000>e<color=#ffff00>r<color=#00ff00>f<color=#0000ff>e<color=#165e83>c<color=#ff00ff>t";
 
                     }
                     else
@@ -150,10 +157,12 @@ public class DemoManager : MonoBehaviour
                         // Good
                         score += (int)(10.0f * (1.0f + (float)combo / 10.0f));
                         TapPositionText[tapPositionIndex].text = "Good";
+                        TapPositionText[tapPositionIndex].color = Color.green;
                     }
                     combo++;
                     notesCollisionManager.inLine = false;
                     Destroy(notesCollisionManager.note);
+                    StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                 }
                 else
                 {
@@ -163,8 +172,12 @@ public class DemoManager : MonoBehaviour
                         combo = 0;
                         Destroy(notesCollisionManager.note);
                         TapPositionText[tapPositionIndex].text = "Miss";
+                        TapPositionText[tapPositionIndex].color = Color.blue;
+                        StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                     }
                 }
+                is_tapped_r = true;
+                receivedTapData.is_tapped_r = false;
             }
             else if (!receivedTapData.is_tapped_r || receivedTapData.tapped_part_r == null)
             {
@@ -182,28 +195,6 @@ public class DemoManager : MonoBehaviour
             SceneManager.LoadScene("ScoreWindow");
         }
     }
-
-    // void OnEnable()
-    // {
-    //     director.stopped += OnPlayableDirectorStopped;
-    // }
-
-    // void OnPlayableDirectorStopped(PlayableDirector aDirector)
-    // {
-    //     if (director == aDirector)
-    //     {
-    //         receiveThread.Abort();
-    //         PlayerPrefs.SetInt("SCORE", score);
-    //         PlayerPrefs.SetInt("MAX COMBO", max_combo);
-    //         PlayerPrefs.Save();
-    //         SceneManager.LoadScene("ScoreWindow");
-    //     }
-    // }
-
-    // void OnDisable()
-    // {
-    //     director.stopped -= OnPlayableDirectorStopped;
-    // }
 
     void OnApplicationQuit()
     {
@@ -231,5 +222,11 @@ public class DemoManager : MonoBehaviour
                 print(err.ToString());
             }
         }
+    }
+
+    IEnumerator DisappearText(TextMeshProUGUI message)
+    {
+        yield return new WaitForSeconds(1.0f);
+        message.text = "";
     }
 }

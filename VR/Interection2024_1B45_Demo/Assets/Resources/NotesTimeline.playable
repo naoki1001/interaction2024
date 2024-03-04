@@ -22,10 +22,10 @@ MonoBehaviour:
   m_Children: []
   m_Clips:
   - m_Version: 1
-    m_Start: 7.383333333333334
+    m_Start: 4
     m_ClipIn: 0
-    m_Asset: {fileID: -6847564751819378425}
-    m_Duration: 87.0661224489796
+    m_Asset: {fileID: 6598154765161993880}
+    m_Duration: 81.05795918367347
     m_TimeScale: 1
     m_ParentTrack: {fileID: -9063153003020345187}
     m_EaseInDuration: 0
@@ -96,23 +96,6 @@ MonoBehaviour:
     volume: 1
     stereoPan: 0
     spatialBlend: 0
---- !u!114 &-6847564751819378425
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f10dd60657c6004587f237a7e90f8e4, type: 3}
-  m_Name: AudioPlayableAsset
-  m_EditorClassIdentifier: 
-  m_Clip: {fileID: 8300000, guid: 7ca85b11274bfdb4a8dde888f123a98f, type: 3}
-  m_Loop: 0
-  m_bufferingTime: 0.1
-  m_ClipProperties:
-    volume: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,9 +140,9 @@ MonoBehaviour:
   m_Children: []
   m_Clips:
   - m_Version: 1
-    m_Start: 6.85
+    m_Start: 3.85
     m_ClipIn: 0
-    m_Asset: {fileID: -5749601564369302887, guid: ad25b0f6f47992c4cae327f6f7ea04a9, type: 3}
+    m_Asset: {fileID: -2682545343286002902, guid: f3a73e24ffc177549bb6c7c11ec413e5, type: 3}
     m_Duration: 72
     m_TimeScale: 1
     m_ParentTrack: {fileID: 1220639081790891053}
@@ -223,9 +206,26 @@ MonoBehaviour:
     m_PostExtrapolationMode: 0
     m_PreExtrapolationMode: 0
     m_PostExtrapolationTime: Infinity
-    m_PreExtrapolationTime: 6.85
-    m_DisplayName: "twincle_star_easy-\u30D4\u30A2\u30CE Track 1"
+    m_PreExtrapolationTime: 3.85
+    m_DisplayName: twincle_star_easy_texchord Track 1
   m_Markers:
     m_Objects: []
   template:
     controls: []
+--- !u!114 &6598154765161993880
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f10dd60657c6004587f237a7e90f8e4, type: 3}
+  m_Name: AudioPlayableAsset
+  m_EditorClassIdentifier: 
+  m_Clip: {fileID: 8300000, guid: d356be6077fe72f4196b9b000e340107, type: 3}
+  m_Loop: 0
+  m_bufferingTime: 0.1
+  m_ClipProperties:
+    volume: 1
