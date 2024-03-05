@@ -15,7 +15,7 @@ public class MoveNotes : MonoBehaviour
     {
         transform.Translate(0, 0, -130.43f * Time.deltaTime * speed);
 
-        if (transform.position.z < 0.0f)
+        if (transform.position.z < -5.0f)
         {
             Destroy(gameObject);
         }
