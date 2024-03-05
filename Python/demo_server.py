@@ -266,6 +266,7 @@ def udp_server():
 def udp_server_body():
     global udp_server_running
     global received_tracking_data
+    global latest_tracking_data
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((UDP_HOST, UDP_PORT_BODY))
@@ -274,6 +275,7 @@ def udp_server_body():
     while udp_server_running:
         data, addr = server_socket.recvfrom(2048)
         received_tracking_data = json.loads(data.decode('utf-8'))
+        received_tracking_data['Head']['y'] += 0.15
 
     server_socket.close()
     print("UDP server stopped")
@@ -303,6 +305,17 @@ def send_tap_data():
         input_report_l = joycon_l.read(49)
         input_report_r = joycon_r.read(49)
         for i in range(3):
+            if latest_tracking_data is not None:
+                if latest_tracking_data['isTrackedLeft']:
+                    left_hand_acc = []
+                if latest_tracking_data['isTrackedRight']:
+                    right_hand_acc = []
+
+            if len(left_hand_acc) > 10:
+                left_hand_acc = []
+            if len(right_hand_acc) > 10:
+                right_hand_acc = []
+
             left_hand_acc.append(get_accel_left(input_report_l, sample_idx=i))
             right_hand_acc.append(get_accel_right(input_report_r, sample_idx=i))
 

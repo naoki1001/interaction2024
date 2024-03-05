@@ -45,8 +45,6 @@ public class DemoManager : MonoBehaviour
     Thread receiveThread;
     UdpClient client;
     private int port;
-    private bool is_tapped_l = false;
-    private bool is_tapped_r = false;
     private float tap_position_z;
 
     [System.Serializable]
@@ -92,7 +90,7 @@ public class DemoManager : MonoBehaviour
         director.Evaluate();
         if (receivedTapData != null)
         {
-            if (receivedTapData.is_tapped_l && !is_tapped_l && receivedTapData.tapped_part_l != null)
+            if (receivedTapData.is_tapped_l && receivedTapData.tapped_part_l != null)
             {
                 int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_l);
                 notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
@@ -101,10 +99,11 @@ public class DemoManager : MonoBehaviour
                 tapEffect.Emit(1);
                 if (notesCollisionManager.inLine)
                 {
-                    if (diff < 0.5f)
+                    if (diff < 1.0f)
                     {
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
-                        TapPositionText[tapPositionIndex].text = "<color=#ff0000>P<color=#ff8000>e<color=#ffff00>r<color=#00ff00>f<color=#0000ff>e<color=#165e83>c<color=#ff00ff>t";
+                        TapPositionText[tapPositionIndex].text = "Perfect";
+                        TapPositionText[tapPositionIndex].color = Color.yellow;
                     }
                     else
                     {
@@ -114,6 +113,7 @@ public class DemoManager : MonoBehaviour
                     }
                     combo++;
                     notesCollisionManager.inLine = false;
+                    Destroy(notesCollisionManager.note.GetComponent<MoveNotes>());
                     Destroy(notesCollisionManager.note);
                     StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                 }
@@ -122,21 +122,18 @@ public class DemoManager : MonoBehaviour
                     if (notesCollisionManager.note)
                     {
                         combo = 0;
+                        Destroy(notesCollisionManager.note.GetComponent<MoveNotes>());
                         Destroy(notesCollisionManager.note);
                         TapPositionText[tapPositionIndex].text = "Miss";
                         TapPositionText[tapPositionIndex].color = Color.blue;
                         StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                     }
                 }
-                is_tapped_l = true;
                 receivedTapData.is_tapped_l = false;
-            }
-            else if (!receivedTapData.is_tapped_l || receivedTapData.tapped_part_l == null)
-            {
-                is_tapped_l = false;
+                receivedTapData.tapped_part_l = null;
             }
 
-            if (receivedTapData.is_tapped_r && !is_tapped_r && receivedTapData.tapped_part_r != null)
+            if (receivedTapData.is_tapped_r && receivedTapData.tapped_part_r != null)
             {
                 int tapPositionIndex = (int)(JointName)Enum.Parse(typeof(JointName), receivedTapData.tapped_part_r);
                 notesCollisionManager = TapPositionAnchor[tapPositionIndex].GetComponent<NotesCollisionManager>();
@@ -145,11 +142,12 @@ public class DemoManager : MonoBehaviour
                 tapEffect.Emit(1);
                 if (notesCollisionManager.inLine)
                 {
-                    if (diff < 0.5f)
+                    if (diff < 1.0f)
                     {
                         // Perfect
                         score += (int)(20.0f * (1.0f + (float)combo / 10.0f));
-                        TapPositionText[tapPositionIndex].text = "<color=#ff0000>P<color=#ff8000>e<color=#ffff00>r<color=#00ff00>f<color=#0000ff>e<color=#165e83>c<color=#ff00ff>t";
+                        TapPositionText[tapPositionIndex].text = "Perfect";
+                        TapPositionText[tapPositionIndex].color = Color.yellow;
 
                     }
                     else
@@ -161,6 +159,7 @@ public class DemoManager : MonoBehaviour
                     }
                     combo++;
                     notesCollisionManager.inLine = false;
+                    Destroy(notesCollisionManager.note.GetComponent<MoveNotes>());
                     Destroy(notesCollisionManager.note);
                     StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                 }
@@ -170,18 +169,15 @@ public class DemoManager : MonoBehaviour
                     {
                         // Miss
                         combo = 0;
+                        Destroy(notesCollisionManager.note.GetComponent<MoveNotes>());
                         Destroy(notesCollisionManager.note);
                         TapPositionText[tapPositionIndex].text = "Miss";
                         TapPositionText[tapPositionIndex].color = Color.blue;
                         StartCoroutine(DisappearText(TapPositionText[tapPositionIndex]));
                     }
                 }
-                is_tapped_r = true;
                 receivedTapData.is_tapped_r = false;
-            }
-            else if (!receivedTapData.is_tapped_r || receivedTapData.tapped_part_r == null)
-            {
-                is_tapped_r = false;
+                receivedTapData.tapped_part_r = null;
             }
         }
 
