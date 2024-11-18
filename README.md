@@ -40,4 +40,4 @@ python Python/demo_server.py
 
 ## 参考文献
 
-- [インタラクション2024 論文「1B-45: VR 環境下における身体背面部へのタップ操作による入力領域拡張」](https://www.interaction-ipsj.org/proceedings/2024/data/pdf/1B-45.pdf)
+- [インタラクション2024 論文「VR 環境下における身体背面部へのタップ操作による入力領域拡張」](https://www.interaction-ipsj.org/proceedings/2024/data/pdf/1B-45.pdf)
