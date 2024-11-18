@@ -1,6 +1,6 @@
 # Interaction2024
 
-このプロジェクトは、[インタラクション2024](https://www.interaction-ipsj.org/)のデモセッション（1B-45）で発表した内容「VR 環境下における身体背面部へのタップ操作による入力領域拡張」の実装です。
+このプロジェクトは、[インタラクション2024](https://www.interaction-ipsj.org/)の[デモセッション](https://www.interaction-ipsj.org/2024/program/#interactive1)（1B-45）で発表した内容「VR 環境下における身体背面部へのタップ操作による入力領域拡張」の実装です。
 
 ## 概要
 
