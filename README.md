@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 4. Pythonスクリプトを実行してセンサーデータの取得を開始:
 ```
-python Python/demo_server.py
+python Python/socket_pipeline.py
 ```
 
 5. Meta Quest 2/3を装着し、リストバンドに装着したJoy-Conを手首につける
@@ -41,3 +41,4 @@ python Python/demo_server.py
 ## 参考文献
 
 - [インタラクション2024 論文「VR 環境下における身体背面部へのタップ操作による入力領域拡張」](https://www.interaction-ipsj.org/proceedings/2024/data/pdf/1B-45.pdf)
+
